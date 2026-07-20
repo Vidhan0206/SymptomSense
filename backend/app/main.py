@@ -3,8 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.retrieval.query import retrieve
+from app.routes.chat import router as chat_router
 
 app = FastAPI(title="SymptomSense API", version="0.1.0")
+app.include_router(chat_router)
 
 app.add_middleware(
     CORSMiddleware,
