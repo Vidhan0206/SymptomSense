@@ -5,9 +5,9 @@ class Settings(BaseSettings):
     project_name: str = "SymptomSense"
     environment: str = "development"
     
-    nvidia_api_key: str = Field(..., env="NVIDIA_API_KEY")
-    nvidia_base_url: str = Field("https://integrate.api.nvidia.com/v1", env="NVIDIA_BASE_URL")
-    llm_model: str = Field("meta/llama3-70b-instruct", env="LLM_MODEL")
+    groq_api_key: str = Field(..., env="GROQ_API_KEY")
+    groq_base_url: str = Field("https://api.groq.com/openai/v1", env="GROQ_BASE_URL")
+    llm_model: str = Field("llama-3.3-70b-versatile", env="LLM_MODEL")
     
     chroma_db_dir: str = Field("data/chroma_db", env="CHROMA_DB_DIR")
     chunks_json_path: str = Field("data/chunks/chunks.json", env="CHUNKS_JSON_PATH")

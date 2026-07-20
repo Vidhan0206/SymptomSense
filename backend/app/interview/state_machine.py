@@ -1,6 +1,6 @@
 import json
 from app.models.schemas import ChatRequest, ChatResponse, Assessment, Source
-from app.llm.client import nvidia_llm_client, get_llm_model
+from app.llm.client import groq_llm_client, get_llm_model
 from app.retrieval.query import retrieve
 
 MAX_TURNS = 5
@@ -42,6 +42,7 @@ If you need more information to narrow down the conditions in the MEDICAL CONTEX
 
 INSTRUCTIONS:
 Respond ONLY with a JSON object. No markdown formatting, no code blocks, just raw JSON.
+If the condition is an emergency (e.g. Heart Attack), explicitly tell the user to call Indian emergency numbers (112 or 108).
 If you are asking a follow-up question, return:
 {{
   "is_assessment": false,
@@ -69,7 +70,7 @@ If you are providing a final assessment, return:
         llm_messages.append({"role": m.role, "content": m.content})
         
     try:
-        response = nvidia_llm_client.chat.completions.create(
+        response = groq_llm_client.chat.completions.create(
             model=get_llm_model(),
             messages=llm_messages,
             temperature=0.3,
