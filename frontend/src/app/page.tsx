@@ -17,13 +17,68 @@ type Assessment = {
   next_steps: string[];
 };
 
+type Session = {
+  id: string;
+  title: string;
+  messages: Message[];
+  assessment: Assessment | null;
+  createdAt: number;
+};
+
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [userName, setUserName] = useState("Guest Patient");
+  const [isEditingName, setIsEditingName] = useState(false);
+  
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [assessment, setAssessment] = useState<Assessment | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load from LocalStorage on mount
+  useEffect(() => {
+    const savedName = localStorage.getItem("symptomsense_username");
+    if (savedName) {
+      setUserName(savedName);
+    }
+
+    const saved = localStorage.getItem("symptomsense_sessions");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setSessions(parsed);
+        if (parsed.length > 0) {
+          setActiveSessionId(parsed[0].id);
+        } else {
+          createNewSession();
+        }
+      } catch (e) {
+        console.error("Failed to parse sessions", e);
+        createNewSession();
+      }
+    } else {
+      createNewSession();
+    }
+  }, []);
+
+  // Save to LocalStorage when sessions change
+  useEffect(() => {
+    if (sessions.length > 0) {
+      localStorage.setItem("symptomsense_sessions", JSON.stringify(sessions));
+    } else if (sessions.length === 0 && activeSessionId === null) {
+      // If we just deleted everything, don't overwrite with empty yet, let createNewSession handle it
+    }
+  }, [sessions]);
+
+  // Save username to LocalStorage
+  useEffect(() => {
+    localStorage.setItem("symptomsense_username", userName);
+  }, [userName]);
+
+  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const currentMessages = activeSession?.messages || [];
+  const currentAssessment = activeSession?.assessment || null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -31,26 +86,65 @@ export default function Home() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, loading]);
+  }, [currentMessages, loading]);
+
+  const createNewSession = () => {
+    const newId = Date.now().toString();
+    const newSession: Session = {
+      id: newId,
+      title: "New Assessment",
+      messages: [],
+      assessment: null,
+      createdAt: Date.now()
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newId);
+    setInput("");
+  };
 
   const handleReset = () => {
-    setMessages([]);
-    setAssessment(null);
-    setInput("");
+    createNewSession();
+  };
+
+  const handleDeleteSession = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // prevent triggering active session switch
+    const updated = sessions.filter(s => s.id !== id);
+    setSessions(updated);
+    
+    if (updated.length === 0) {
+      localStorage.removeItem("symptomsense_sessions");
+      createNewSession();
+    } else if (activeSessionId === id) {
+      setActiveSessionId(updated[0].id);
+    }
   };
 
   const handleChipClick = (text: string) => {
     setInput(text);
   };
 
+  const updateActiveSession = (updates: Partial<Session>) => {
+    setSessions(prev => prev.map(s => 
+      s.id === activeSessionId ? { ...s, ...updates } : s
+    ));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || loading || assessment) return;
+    if (!input.trim() || loading || currentAssessment) return;
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMessage: Message = { role: "user", content: input, timestamp };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    
+    const newMessages = [...currentMessages, userMessage];
+    
+    // Auto-generate title if this is the first message
+    let newTitle = activeSession?.title;
+    if (currentMessages.length === 0) {
+      newTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
+    }
+
+    updateActiveSession({ messages: newMessages, title: newTitle });
     setInput("");
     setLoading(true);
 
@@ -68,32 +162,103 @@ export default function Home() {
       const responseTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       if (data.is_assessment && data.assessment) {
-        setAssessment(data.assessment);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "Based on our conversation and medical literature, I've generated an assessment below.", timestamp: responseTimestamp }
-        ]);
+        updateActiveSession({ 
+          assessment: data.assessment,
+          messages: [
+            ...newMessages,
+            { role: "assistant", content: "Based on our conversation and medical literature, I've generated an assessment below.", timestamp: responseTimestamp }
+          ]
+        });
       } else if (data.question) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.question, timestamp: responseTimestamp }]);
+        updateActiveSession({ 
+          messages: [
+            ...newMessages, 
+            { role: "assistant", content: data.question, timestamp: responseTimestamp }
+          ] 
+        });
       }
     } catch (error) {
       console.error("Failed to fetch:", error);
-      setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I encountered a network error connecting to the server." }]);
+      updateActiveSession({ 
+        messages: [
+          ...newMessages, 
+          { role: "assistant", content: "Sorry, I encountered a network error connecting to the server.", timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+        ] 
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="app-container">
-      <div className="header">
-        <h1>SymptomSense</h1>
-        <p>Adaptive AI Clinical Interview Assistant</p>
-      </div>
+    <div className="app-layout">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="logo">⚕️ SymptomSense</div>
+        </div>
+        
+        <div className="sidebar-content">
+          <button className="new-chat-btn" onClick={handleReset}>
+            <span className="plus-icon">+</span> New Assessment
+          </button>
+          
+          <div className="history-section">
+            <p className="section-title">Recent Activity</p>
+            {sessions.length === 0 ? (
+               <div className="empty-history">No assessments yet</div>
+            ) : (
+              sessions.map(session => (
+                <div 
+                  key={session.id} 
+                  className={`history-item ${session.id === activeSessionId ? 'active' : ''}`}
+                  onClick={() => setActiveSessionId(session.id)}
+                >
+                  <span className="history-icon">{session.assessment ? '🩺' : '💬'}</span>
+                  <span className="history-title">{session.title}</span>
+                  <button 
+                    className="delete-session-btn"
+                    onClick={(e) => handleDeleteSession(e, session.id)}
+                    title="Delete Session"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
-      <div className="chat-container">
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <div className="avatar user-avatar mini">👤</div>
+            {isEditingName ? (
+              <input 
+                type="text" 
+                className="name-edit-input" 
+                value={userName} 
+                onChange={e => setUserName(e.target.value)}
+                onBlur={() => setIsEditingName(false)}
+                onKeyDown={e => e.key === 'Enter' && setIsEditingName(false)}
+                autoFocus
+              />
+            ) : (
+              <>
+                <span>{userName}</span>
+                <button className="edit-name-btn" onClick={() => setIsEditingName(true)} title="Edit Name">✎</button>
+              </>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="main-content">
         <div className="chat-history">
-          {messages.length === 0 ? (
+          {currentMessages.length === 0 ? (
             <div className="welcome-screen">
               <div className="welcome-icon">⚕️</div>
               <h2>Welcome to SymptomSense</h2>
@@ -107,7 +272,7 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            messages.map((msg, idx) => (
+            currentMessages.map((msg, idx) => (
               <div key={idx} className={`message-row ${msg.role}`}>
                 <div className={`avatar ${msg.role === 'user' ? 'user-avatar' : 'ai-avatar'}`}>
                   {msg.role === 'user' ? '👤' : '🤖'}
@@ -134,34 +299,34 @@ export default function Home() {
             </div>
           )}
 
-          {assessment && (
+          {currentAssessment && (
             <div className="assessment-card">
               <div className="assessment-header">
-                <h2 className="assessment-title">Condition: {assessment.condition}</h2>
-                <span className={`badge urgency-${assessment.urgency}`}>
-                  Urgency: {assessment.urgency}
+                <h2 className="assessment-title">Condition: {currentAssessment.condition}</h2>
+                <span className={`badge urgency-${currentAssessment.urgency}`}>
+                  Urgency: {currentAssessment.urgency}
                 </span>
               </div>
               
               <div className="assessment-section">
-                <h3>Reasoning (Confidence: {assessment.confidence})</h3>
-                <p>{assessment.reasoning}</p>
+                <h3>Reasoning (Confidence: {currentAssessment.confidence})</h3>
+                <p>{currentAssessment.reasoning}</p>
               </div>
 
               <div className="assessment-section">
                 <h3>Recommended Next Steps</h3>
                 <ul>
-                  {assessment.next_steps.map((step, idx) => (
+                  {currentAssessment.next_steps.map((step, idx) => (
                     <li key={idx}>{step}</li>
                   ))}
                 </ul>
               </div>
 
-              {assessment.sources && assessment.sources.length > 0 && (
+              {currentAssessment.sources && currentAssessment.sources.length > 0 && (
                 <div className="assessment-section" style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem', marginTop: '1rem' }}>
                   <h3>Verified Medical Sources</h3>
                   <ul>
-                    {assessment.sources.map((src, idx) => (
+                    {currentAssessment.sources.map((src, idx) => (
                       <li key={idx}>
                         <a href={src.url} target="_blank" rel="noopener noreferrer" className="source-link">
                           MedlinePlus: {src.condition}
@@ -181,20 +346,21 @@ export default function Home() {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="input-area">
+        <div className="input-wrapper">
+          <div className="input-area">
           <form onSubmit={handleSubmit} className="input-form">
             <input
               type="text"
               className="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={assessment ? "Assessment complete. Please start a new session." : "Describe your symptoms..."}
-              disabled={loading || assessment !== null}
+              placeholder={currentAssessment ? "Assessment complete. Please start a new session." : "Describe your symptoms..."}
+              disabled={loading || currentAssessment !== null}
             />
             <button 
               type="submit" 
               className="send-button"
-              disabled={!input.trim() || loading || assessment !== null}
+              disabled={!input.trim() || loading || currentAssessment !== null}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -206,7 +372,8 @@ export default function Home() {
             SymptomSense is an AI tool for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
           </div>
         </div>
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }

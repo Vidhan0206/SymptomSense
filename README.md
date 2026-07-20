@@ -6,22 +6,30 @@ SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts 
 ![SymptomSense UI Demo](https://via.placeholder.com/1000x500.png?text=SymptomSense+UI)
 
 ## ✨ Features
-- **Adaptive Clinical Interviews**: Powered by **Groq** (Llama 3.3 70B), the AI dynamically asks follow-up questions based on your specific symptoms, rather than relying on a static decision tree.
-- **RAG-Grounded Medical Knowledge**: Symptoms are analyzed against real medical literature (MedlinePlus) stored locally in **ChromaDB**. The AI cannot hallucinate diagnoses outside of its retrieved context.
+- **Adaptive Clinical Interviews**: Powered by **Groq** via the blazing-fast `llama-3.3-70b-versatile` API, the AI dynamically asks follow-up questions based on your specific symptoms, rather than relying on a static decision tree.
+- **RAG-Grounded Medical Knowledge**: Symptoms are analyzed against real medical literature stored locally in **ChromaDB**. The AI is strictly prompted to avoid hallucinating diagnoses outside of its retrieved context.
+- **Multi-Source Data Pipelines**: Ingests and harmonizes clinical data from across the globe, including the **US National Institutes of Health (MedlinePlus)** and the **UK National Health Service (NHS)**.
 - **Structured JSON Assessments**: The LLM output is strictly constrained to a JSON schema, producing a final Assessment Card containing the suspected condition, confidence level, urgency, reasoning, and verified medical sources.
-- **Premium User Interface**: Built with **Next.js** and React. Features a highly responsive dark-mode aesthetic with glassmorphism, glowing micro-animations, quick-start suggestion chips, and an explicit loading state.
+- **Premium User Interface**: Built with **Next.js** and React. Features a ChatGPT-style persistent Session Management system (via LocalStorage), editable user profiles, a highly responsive dark-mode aesthetic with glassmorphism, glowing micro-animations, quick-start suggestion chips, and explicit loading states.
+
+## 📊 Multi-Source Data Architecture
+SymptomSense demonstrates a highly scalable Retrieval-Augmented Generation pipeline. Rather than hardcoding data, the `app/ingestion` engine features dynamic Python web scrapers that programmatically crawl and index medical databases:
+1. **MedlinePlus (US NIH)**: A dynamic A-Z index crawler that successfully scraped over 150 unique medical conditions.
+2. **National Health Service (UK NHS)**: A targeted scraper that pulls verified clinical definitions directly from the UK government.
+
+In total, the pipeline chunked and embedded **almost 500 dense vectors** into ChromaDB using the `all-MiniLM-L6-v2` sentence-transformer.
 
 ## 🏗️ Architecture
 The project is split into a Python backend and a Next.js frontend.
 
 ### Backend (FastAPI + ChromaDB)
-- `app/ingestion/`: Web scraping scripts that pull conditions from MedlinePlus, chunk the HTML into raw text, and save them as JSON.
+- `app/ingestion/`: Multi-source web scraping scripts that pull conditions from MedlinePlus and the NHS, chunk the HTML into raw text, and save them as JSON.
 - `app/retrieval/`: Uses `sentence-transformers` (`all-MiniLM-L6-v2`) to embed the chunks into a local Chroma vector database. Exposes a `retrieve()` function for RAG.
 - `app/llm/`: Manages the Groq API connection and houses the core State Machine. The State Machine parses conversation history, pulls RAG context, and uses a complex system prompt to force the LLM to choose between asking a follow-up question or finalizing an assessment.
 - `app/main.py`: Exposes the `/interview/message` POST endpoint.
 
 ### Frontend (Next.js 14)
-- `src/app/page.tsx`: The primary chat interface. Handles state management for the interview, loading animations, and dynamic rendering of the final Assessment Card.
+- `src/app/page.tsx`: The primary chat interface. Handles state management for the interview, session persistence, loading animations, and dynamic rendering of the final Assessment Card.
 - `src/app/globals.css`: A pure Vanilla CSS stylesheet tailored for a premium, lightweight, responsive experience without heavy CSS frameworks.
 
 ## 🚀 Getting Started
