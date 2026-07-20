@@ -33,6 +33,7 @@ export default function Home() {
   
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +128,45 @@ export default function Home() {
     setSessions(prev => prev.map(s => 
       s.id === activeSessionId ? { ...s, ...updates } : s
     ));
+  };
+
+  const startListening = () => {
+    // @ts-ignore - SpeechRecognition is not strictly typed in all browsers
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join("");
+      setInput(transcript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -337,9 +377,23 @@ export default function Home() {
                 </div>
               )}
               
-              <button className="reset-button" onClick={handleReset}>
-                ⟲ Start New Assessment
-              </button>
+              <div className="assessment-actions" style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
+                {currentAssessment.urgency === "emergency" ? (
+                  <a href="tel:112" className="reset-button" style={{ flex: 2, margin: 0, background: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', color: '#fca5a5', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                    🚨 CALL AMBULANCE (112)
+                  </a>
+                ) : (
+                  <a href={`https://www.google.com/maps/search/doctors+for+${encodeURIComponent(currentAssessment.condition)}+near+me`} target="_blank" rel="noopener noreferrer" className="reset-button" style={{ flex: 1.5, margin: 0, background: 'rgba(59, 130, 246, 0.2)', borderColor: '#3b82f6', color: '#93c5fd', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    📍 Find Nearby Clinics
+                  </a>
+                )}
+                <button className="reset-button" onClick={handlePrint} style={{ flex: 1, margin: 0, background: 'rgba(255,255,255,0.1)' }}>
+                  🖨️ Export Report
+                </button>
+                <button className="reset-button" onClick={handleReset} style={{ flex: 1, margin: 0 }}>
+                  ⟲ Start New
+                </button>
+              </div>
             </div>
           )}
           
@@ -357,6 +411,17 @@ export default function Home() {
               placeholder={currentAssessment ? "Assessment complete. Please start a new session." : "Describe your symptoms..."}
               disabled={loading || currentAssessment !== null}
             />
+            
+            <button 
+              type="button"
+              className={`mic-button ${isListening ? 'listening' : ''}`}
+              onClick={startListening}
+              disabled={loading || currentAssessment !== null}
+              title="Speak your symptoms"
+            >
+              🎤
+            </button>
+
             <button 
               type="submit" 
               className="send-button"

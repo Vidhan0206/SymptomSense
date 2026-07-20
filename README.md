@@ -9,8 +9,10 @@ SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts 
 - **Adaptive Clinical Interviews**: Powered by **Groq** via the blazing-fast `llama-3.3-70b-versatile` API, the AI dynamically asks follow-up questions based on your specific symptoms, rather than relying on a static decision tree.
 - **RAG-Grounded Medical Knowledge**: Symptoms are analyzed against real medical literature stored locally in **ChromaDB**. The AI is strictly prompted to avoid hallucinating diagnoses outside of its retrieved context.
 - **Multi-Source Data Pipelines**: Ingests and harmonizes clinical data from across the globe, including the **US National Institutes of Health (MedlinePlus)** and the **UK National Health Service (NHS)**.
+- **Voice Input (Speech-to-Text)**: Seamlessly integrates with native browser Web Speech APIs, allowing users to physically speak their symptoms instead of typing.
+- **Exportable Medical Reports**: Once an assessment is finalized, users can generate and download a clean, high-contrast PDF medical chart to share with their actual physician.
 - **Structured JSON Assessments**: The LLM output is strictly constrained to a JSON schema, producing a final Assessment Card containing the suspected condition, confidence level, urgency, reasoning, and verified medical sources.
-- **Premium User Interface**: Built with **Next.js** and React. Features a ChatGPT-style persistent Session Management system (via LocalStorage), editable user profiles, a highly responsive dark-mode aesthetic with glassmorphism, glowing micro-animations, quick-start suggestion chips, and explicit loading states.
+- **Premium User Interface**: Built with **Next.js** and React. Features a ChatGPT-style persistent Session Management system (via LocalStorage), editable user profiles, dynamic urgency action buttons (e.g., one-click Ambulance dialing), a highly responsive dark-mode aesthetic with glassmorphism, and glowing micro-animations.
 
 ## 📊 Multi-Source Data Architecture
 SymptomSense demonstrates a highly scalable Retrieval-Augmented Generation pipeline. Rather than hardcoding data, the `app/ingestion` engine features dynamic Python web scrapers that programmatically crawl and index medical databases:
