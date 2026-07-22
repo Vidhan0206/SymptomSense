@@ -14,12 +14,12 @@ def _get_collection():
         db_path = os.path.join(base_dir, settings.chroma_db_dir)
         
         _client = chromadb.PersistentClient(path=db_path)
-        sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+        default_ef = embedding_functions.DefaultEmbeddingFunction()
         
         try:
             _collection = _client.get_collection(
                 name="symptomsense_kb",
-                embedding_function=sentence_transformer_ef
+                embedding_function=default_ef
             )
         except Exception as e:
             # Collection might not exist yet
