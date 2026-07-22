@@ -104,6 +104,12 @@ export default function Home() {
   };
 
   const handleReset = () => {
+    const emptySession = sessions.find(s => s.messages.length === 0);
+    if (emptySession) {
+      setActiveSessionId(emptySession.id);
+      setInput("");
+      return;
+    }
     createNewSession();
   };
 
@@ -246,10 +252,10 @@ export default function Home() {
           
           <div className="history-section">
             <p className="section-title">Recent Activity</p>
-            {sessions.length === 0 ? (
+            {sessions.filter(s => s.messages.length > 0).length === 0 ? (
                <div className="empty-history">No assessments yet</div>
             ) : (
-              sessions.map(session => (
+              sessions.filter(s => s.messages.length > 0).map(session => (
                 <div 
                   key={session.id} 
                   className={`history-item ${session.id === activeSessionId ? 'active' : ''}`}
@@ -380,15 +386,15 @@ export default function Home() {
               
               <div className="assessment-actions" style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                 {currentAssessment.urgency === "emergency" ? (
-                  <a href="tel:112" className="reset-button" style={{ flex: 2, margin: 0, background: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', color: '#fca5a5', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  <a href="tel:112" className="reset-button" style={{ flex: 2, margin: 0, background: 'rgba(220, 38, 38, 0.1)', borderColor: '#dc2626', color: '#b91c1c', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
                     🚨 CALL AMBULANCE (112)
                   </a>
                 ) : (
-                  <a href={`https://www.google.com/maps/search/doctors+for+${encodeURIComponent(currentAssessment.condition)}+near+me`} target="_blank" rel="noopener noreferrer" className="reset-button" style={{ flex: 1.5, margin: 0, background: 'rgba(59, 130, 246, 0.2)', borderColor: '#3b82f6', color: '#93c5fd', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <a href={`https://www.google.com/maps/search/doctors+for+${encodeURIComponent(currentAssessment.condition)}+near+me`} target="_blank" rel="noopener noreferrer" className="reset-button" style={{ flex: 1.5, margin: 0, background: 'rgba(14, 165, 233, 0.1)', borderColor: '#0ea5e9', color: '#0284c7', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600' }}>
                     📍 Find Nearby Clinics
                   </a>
                 )}
-                <button className="reset-button" onClick={handlePrint} style={{ flex: 1, margin: 0, background: 'rgba(255,255,255,0.1)' }}>
+                <button className="reset-button" onClick={handlePrint} style={{ flex: 1, margin: 0, background: 'rgba(0, 0, 0, 0.02)' }}>
                   🖨️ Export Report
                 </button>
                 <button className="reset-button" onClick={handleReset} style={{ flex: 1, margin: 0 }}>
