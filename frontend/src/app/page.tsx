@@ -328,7 +328,7 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="main-content">
-        <div className="chat-history" ref={chatHistoryRef}>
+        <div className={`chat-history ${currentMessages.length === 0 ? 'empty' : ''}`} ref={chatHistoryRef}>
           {currentMessages.length === 0 ? (
             <div className="welcome-screen">
               <div className="welcome-icon">⚕️</div>

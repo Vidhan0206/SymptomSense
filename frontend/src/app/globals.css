@@ -47,9 +47,12 @@ h1, h2, h3, h4, h5, h6 {
 /* Layout */
 .app-layout {
   display: flex;
-  height: 100vh; /* Fallback */
-  height: 100dvh; /* Dynamic viewport height for iOS */
-  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -61,6 +64,7 @@ h1, h2, h3, h4, h5, h6 {
   min-height: 0;
   min-width: 0;
   width: 100%;
+  overflow: hidden; /* Force strict boundaries */
 }
 
 .mobile-header {
@@ -272,6 +276,10 @@ h1, h2, h3, h4, h5, h6 {
   gap: 1.5rem;
   scroll-behavior: smooth;
   width: 100%;
+}
+
+.chat-history.empty {
+  padding-bottom: 2rem !important; /* Remove excess scroll gap when empty */
 }
 
 /* Messages */
