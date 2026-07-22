@@ -34,6 +34,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +102,7 @@ export default function Home() {
     setSessions(prev => [newSession, ...prev]);
     setActiveSessionId(newId);
     setInput("");
+    setIsMobileMenuOpen(false); // Close menu on new chat
   };
 
   const handleReset = () => {
@@ -239,8 +241,24 @@ export default function Home() {
 
   return (
     <div className="app-layout">
+      {/* Mobile Header */}
+      <div className="mobile-header">
+        <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          ☰
+        </button>
+        <div className="logo">⚕️ SymptomSense</div>
+        <button className="mobile-new-btn" onClick={() => { handleReset(); setIsMobileMenuOpen(false); }}>
+          +
+        </button>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)}></div>
+      )}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="logo">⚕️ SymptomSense</div>
         </div>
@@ -259,7 +277,7 @@ export default function Home() {
                 <div 
                   key={session.id} 
                   className={`history-item ${session.id === activeSessionId ? 'active' : ''}`}
-                  onClick={() => setActiveSessionId(session.id)}
+                  onClick={() => { setActiveSessionId(session.id); setIsMobileMenuOpen(false); }}
                 >
                   <span className="history-icon">{session.assessment ? '🩺' : '💬'}</span>
                   <span className="history-title">{session.title}</span>
