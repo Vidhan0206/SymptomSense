@@ -37,6 +37,7 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatHistoryRef = useRef<HTMLDivElement>(null);
 
   // Load from LocalStorage on mount
   useEffect(() => {
@@ -83,7 +84,12 @@ export default function Home() {
   const currentAssessment = activeSession?.assessment || null;
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatHistoryRef.current) {
+      chatHistoryRef.current.scrollTo({
+        top: chatHistoryRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   };
 
   useEffect(() => {
@@ -322,7 +328,7 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="main-content">
-        <div className="chat-history">
+        <div className="chat-history" ref={chatHistoryRef}>
           {currentMessages.length === 0 ? (
             <div className="welcome-screen">
               <div className="welcome-icon">⚕️</div>
