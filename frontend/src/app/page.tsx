@@ -30,12 +30,12 @@ export default function Home() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [userName, setUserName] = useState("Guest Patient");
   const [isEditingName, setIsEditingName] = useState(false);
-  
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load from LocalStorage on mount
@@ -119,7 +119,7 @@ export default function Home() {
     e.stopPropagation(); // prevent triggering active session switch
     const updated = sessions.filter(s => s.id !== id);
     setSessions(updated);
-    
+
     if (updated.length === 0) {
       localStorage.removeItem("symptomsense_sessions");
       createNewSession();
@@ -133,7 +133,7 @@ export default function Home() {
   };
 
   const updateActiveSession = (updates: Partial<Session>) => {
-    setSessions(prev => prev.map(s => 
+    setSessions(prev => prev.map(s =>
       s.id === activeSessionId ? { ...s, ...updates } : s
     ));
   };
@@ -145,7 +145,7 @@ export default function Home() {
       alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
       return;
     }
-    
+
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -183,9 +183,9 @@ export default function Home() {
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMessage: Message = { role: "user", content: input, timestamp };
-    
+
     const newMessages = [...currentMessages, userMessage];
-    
+
     // Auto-generate title if this is the first message
     let newTitle = activeSession?.title;
     if (currentMessages.length === 0) {
@@ -211,7 +211,7 @@ export default function Home() {
       const responseTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       if (data.is_assessment && data.assessment) {
-        updateActiveSession({ 
+        updateActiveSession({
           assessment: data.assessment,
           messages: [
             ...newMessages,
@@ -219,20 +219,20 @@ export default function Home() {
           ]
         });
       } else if (data.question) {
-        updateActiveSession({ 
+        updateActiveSession({
           messages: [
-            ...newMessages, 
+            ...newMessages,
             { role: "assistant", content: data.question, timestamp: responseTimestamp }
-          ] 
+          ]
         });
       }
     } catch (error) {
       console.error("Failed to fetch:", error);
-      updateActiveSession({ 
+      updateActiveSession({
         messages: [
-          ...newMessages, 
+          ...newMessages,
           { role: "assistant", content: "Sorry, I encountered a network error connecting to the server.", timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-        ] 
+        ]
       });
     } finally {
       setLoading(false);
@@ -262,26 +262,26 @@ export default function Home() {
         <div className="sidebar-header">
           <div className="logo">⚕️ SymptomSense</div>
         </div>
-        
+
         <div className="sidebar-content">
           <button className="new-chat-btn" onClick={handleReset}>
             <span className="plus-icon">+</span> New Assessment
           </button>
-          
+
           <div className="history-section">
             <p className="section-title">Recent Activity</p>
             {sessions.filter(s => s.messages.length > 0).length === 0 ? (
-               <div className="empty-history">No assessments yet</div>
+              <div className="empty-history">No assessments yet</div>
             ) : (
               sessions.filter(s => s.messages.length > 0).map(session => (
-                <div 
-                  key={session.id} 
+                <div
+                  key={session.id}
                   className={`history-item ${session.id === activeSessionId ? 'active' : ''}`}
                   onClick={() => { setActiveSessionId(session.id); setIsMobileMenuOpen(false); }}
                 >
                   <span className="history-icon">{session.assessment ? '🩺' : '💬'}</span>
                   <span className="history-title">{session.title}</span>
-                  <button 
+                  <button
                     className="delete-session-btn"
                     onClick={(e) => handleDeleteSession(e, session.id)}
                     title="Delete Session"
@@ -301,10 +301,10 @@ export default function Home() {
           <div className="user-profile">
             <div className="avatar user-avatar mini">👤</div>
             {isEditingName ? (
-              <input 
-                type="text" 
-                className="name-edit-input" 
-                value={userName} 
+              <input
+                type="text"
+                className="name-edit-input"
+                value={userName}
                 onChange={e => setUserName(e.target.value)}
                 onBlur={() => setIsEditingName(false)}
                 onKeyDown={e => e.key === 'Enter' && setIsEditingName(false)}
@@ -328,7 +328,7 @@ export default function Home() {
               <div className="welcome-icon">⚕️</div>
               <h2>Welcome to SymptomSense</h2>
               <p>Your AI-powered clinical assistant.</p>
-              
+
               <div className="suggestion-chips">
                 <button className="chip" onClick={() => handleChipClick("I have a severe headache and nausea.")}>🤕 Severe headache & nausea</button>
                 <button className="chip" onClick={() => handleChipClick("My chest hurts and I'm short of breath.")}>🫀 Chest pain & shortness of breath</button>
@@ -372,7 +372,7 @@ export default function Home() {
                   Urgency: {currentAssessment.urgency}
                 </span>
               </div>
-              
+
               <div className="assessment-section">
                 <h3>Reasoning (Confidence: {currentAssessment.confidence})</h3>
                 <p>{currentAssessment.reasoning}</p>
@@ -401,7 +401,7 @@ export default function Home() {
                   </ul>
                 </div>
               )}
-              
+
               <div className="assessment-actions" style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                 {currentAssessment.urgency === "emergency" ? (
                   <a href="tel:112" className="reset-button" style={{ flex: 2, margin: 0, background: 'rgba(220, 38, 38, 0.1)', borderColor: '#dc2626', color: '#b91c1c', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
@@ -421,47 +421,47 @@ export default function Home() {
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
 
         <div className="input-wrapper">
           <div className="input-area">
-          <form onSubmit={handleSubmit} className="input-form">
-            <input
-              type="text"
-              className="chat-input"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={currentAssessment ? "Assessment complete. Please start a new session." : "Describe your symptoms..."}
-              disabled={loading || currentAssessment !== null}
-            />
-            
-            <button 
-              type="button"
-              className={`mic-button ${isListening ? 'listening' : ''}`}
-              onClick={startListening}
-              disabled={loading || currentAssessment !== null}
-              title="Speak your symptoms"
-            >
-              🎤
-            </button>
+            <form onSubmit={handleSubmit} className="input-form">
+              <input
+                type="text"
+                className="chat-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={currentAssessment ? "Assessment complete. Please start a new session." : "Describe your symptoms..."}
+                disabled={loading || currentAssessment !== null}
+              />
 
-            <button 
-              type="submit" 
-              className="send-button"
-              disabled={!input.trim() || loading || currentAssessment !== null}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </form>
-          <div className="disclaimer">
-            SymptomSense is an AI tool for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
+              <button
+                type="button"
+                className={`mic-button ${isListening ? 'listening' : ''}`}
+                onClick={startListening}
+                disabled={loading || currentAssessment !== null}
+                title="Speak your symptoms"
+              >
+                🎤
+              </button>
+
+              <button
+                type="submit"
+                className="send-button"
+                disabled={!input.trim() || loading || currentAssessment !== null}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </form>
+            <div className="disclaimer">
+              SymptomSense is an AI tool for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
+            </div>
           </div>
-        </div>
         </div>
       </main>
     </div>
