@@ -1,6 +1,6 @@
 import json
 from app.models.schemas import ChatRequest, ChatResponse, Assessment, Source
-from app.llm.client import groq_llm_client, get_llm_model
+from app.llm.client import llm_client, get_llm_model
 from app.retrieval.query import retrieve
 
 MAX_TURNS = 5
@@ -70,7 +70,7 @@ If you are providing a final assessment, return:
         llm_messages.append({"role": m.role, "content": m.content})
         
     try:
-        response = groq_llm_client.chat.completions.create(
+        response = llm_client.chat.completions.create(
             model=get_llm_model(),
             messages=llm_messages,
             temperature=0.3,

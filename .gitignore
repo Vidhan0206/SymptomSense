@@ -38,7 +38,7 @@ share/python-wheels/
 *.egg
 
 # Database / Models
-backend/data/chroma_db/
+# backend/data/chroma_db/ (Commented out so Render gets the database)
 *.sqlite3
 
 # Environment
