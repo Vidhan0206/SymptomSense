@@ -3,6 +3,7 @@ from app.models.schemas import ChatRequest, ChatResponse, Assessment, Source
 from app.llm.client import llm_client, get_llm_model
 from app.retrieval.query import retrieve
 
+MIN_TURNS = 3
 MAX_TURNS = 5
 
 def process_interview(request: ChatRequest) -> ChatResponse:
@@ -33,10 +34,11 @@ def process_interview(request: ChatRequest) -> ChatResponse:
 Your job is to ask adaptive follow-up questions to understand the user's symptoms, and eventually provide a grounded health assessment based ONLY on the provided MEDICAL CONTEXT.
 
 Important: You are for informational purposes only, not a diagnostic tool. 
-Current turn count: {turn_count}/{MAX_TURNS}.
+Current turn count: {turn_count} (Min required: {MIN_TURNS}, Max allowed: {MAX_TURNS}).
 
-If the user has provided enough specific symptoms to make a reasonably confident assessment matching the MEDICAL CONTEXT, OR if the turn count has reached {MAX_TURNS}, you MUST generate a final assessment.
-If you need more information to narrow down the conditions in the MEDICAL CONTEXT, ask ONE concise follow-up question.
+RULE 1: If the turn count is less than {MIN_TURNS}, you MUST ask a follow-up question to gather more details (like severity, duration, or related symptoms). DO NOT generate a final assessment yet.
+RULE 2: If the turn count is >= {MIN_TURNS} and you have enough specific symptoms to make a confident assessment matching the MEDICAL CONTEXT, OR if the turn count has reached {MAX_TURNS}, you MUST generate a final assessment.
+RULE 3: If you need more information to narrow down the conditions in the MEDICAL CONTEXT, ask ONE concise follow-up question.
 
 {context_text}
 
