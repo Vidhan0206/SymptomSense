@@ -14,7 +14,7 @@ SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts 
 - **Voice Input (Speech-to-Text)**: Seamlessly integrates with native browser Web Speech APIs, allowing users to physically speak their symptoms instead of typing.
 - **Exportable Medical Reports**: Once an assessment is finalized, users can generate and download a clean, high-contrast PDF medical chart to share with their actual physician.
 - **Structured JSON Assessments**: The LLM output is strictly constrained to a JSON schema, producing a final Assessment Card containing the suspected condition, confidence level, urgency, reasoning, and verified medical sources.
-- **Premium User Interface**: Built with **Next.js** and React. Features a ChatGPT-style persistent Session Management system (via LocalStorage), editable user profiles, dynamic urgency action buttons (e.g., one-click Ambulance dialing), a highly responsive dark-mode aesthetic with glassmorphism, and glowing micro-animations.
+- **Premium User Interface**: Built with **Next.js** and React. Features a ChatGPT-style persistent Session Management system (via LocalStorage), editable user profiles, dynamic urgency action buttons (e.g., one-click Ambulance dialing), a highly responsive aesthetic with glassmorphism, and subtle micro-animations.
 
 ## 📊 Multi-Source Data Architecture
 SymptomSense demonstrates a highly scalable Retrieval-Augmented Generation pipeline. Rather than hardcoding data, the `app/ingestion` engine features dynamic Python web scrapers that programmatically crawl and index medical databases:
