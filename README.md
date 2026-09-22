@@ -6,7 +6,9 @@ SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts 
 ![SymptomSense UI Demo](https://via.placeholder.com/1000x500.png?text=SymptomSense+UI)
 
 ## ✨ Features
-- **Adaptive Clinical Interviews**: Powered by **Groq** via the blazing-fast `llama-3.3-70b-versatile` API, the AI dynamically asks follow-up questions based on your specific symptoms, rather than relying on a static decision tree.
+- **Adaptive Clinical Interviews**: Powered by **Groq** via the blazing-fast `qwen-27b` API, the AI dynamically asks follow-up questions based on your specific symptoms, rather than relying on a static decision tree.
+- **HIPAA-Compliant Data Security**: Integrates **Microsoft Presidio NLP** to autonomously detect and redact Personally Identifiable Information (PII) from user input, ensuring strict data privacy before routing sanitized data to enterprise API endpoints.
+- **Advanced RAG (Query Expansion)**: Dynamically translates raw conversational symptoms into optimized clinical terminology using an LLM preprocessing step, drastically improving semantic retrieval accuracy.
 - **RAG-Grounded Medical Knowledge**: Symptoms are analyzed against real medical literature stored locally in **ChromaDB**. The AI is strictly prompted to avoid hallucinating diagnoses outside of its retrieved context.
 - **Multi-Source Data Pipelines**: Ingests and harmonizes clinical data from across the globe, including the **US National Institutes of Health (MedlinePlus)** and the **UK National Health Service (NHS)**.
 - **Voice Input (Speech-to-Text)**: Seamlessly integrates with native browser Web Speech APIs, allowing users to physically speak their symptoms instead of typing.
@@ -26,7 +28,8 @@ The project is split into a Python backend and a Next.js frontend.
 
 ### Backend (FastAPI + ChromaDB)
 - `app/ingestion/`: Multi-source web scraping scripts that pull conditions from MedlinePlus and the NHS, chunk the HTML into raw text, and save them as JSON.
-- `app/retrieval/`: Uses `sentence-transformers` (`all-MiniLM-L6-v2`) to embed the chunks into a local Chroma vector database. Exposes a `retrieve()` function for RAG.
+- `app/retrieval/`: Uses `sentence-transformers` (`all-MiniLM-L6-v2`) to embed the chunks into a local Chroma vector database. Implements **Query Expansion** for optimized searches.
+- `app/security/`: Houses the **Microsoft Presidio** NLP anonymizer engine to sanitize PII from user inputs.
 - `app/llm/`: Manages the Groq API connection and houses the core State Machine. The State Machine parses conversation history, pulls RAG context, and uses a complex system prompt to force the LLM to choose between asking a follow-up question or finalizing an assessment.
 - `app/main.py`: Exposes the `/interview/message` POST endpoint.
 
@@ -53,7 +56,7 @@ Create a `.env` file in the `backend` directory:
 ```env
 GROQ_API_KEY="your_groq_api_key_here"
 GROQ_BASE_URL="https://api.groq.com/openai/v1"
-LLM_MODEL="llama-3.3-70b-versatile"
+LLM_MODEL="qwen/qwen3.8-27b"
 CHROMA_DB_DIR="data/chroma_db"
 CHUNKS_JSON_PATH="data/chunks/chunks.json"
 ```
