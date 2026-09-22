@@ -3,7 +3,8 @@
 
 SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts intelligent clinical interviews and generates grounded health assessments using Retrieval-Augmented Generation (RAG).
 
-![SymptomSense UI Demo](https://via.placeholder.com/1000x500.png?text=SymptomSense+UI)
+<img width="1917" height="876" alt="image" src="https://github.com/user-attachments/assets/9da8dc6f-3c6c-4f2b-9164-f777306ef501" />
+
 
 ## ✨ Features
 - **Adaptive Clinical Interviews**: Powered by **Groq** via the blazing-fast `qwen-27b` API, the AI dynamically asks follow-up questions based on your specific symptoms, rather than relying on a static decision tree.
