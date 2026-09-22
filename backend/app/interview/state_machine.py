@@ -2,6 +2,7 @@ import json
 from app.models.schemas import ChatRequest, ChatResponse, Assessment, Source
 from app.llm.client import llm_client, get_llm_model
 from app.retrieval.query import retrieve
+from app.security.pii_scrubber import scrub_text
 
 MIN_TURNS = 3
 MAX_TURNS = 5
@@ -10,12 +11,21 @@ def process_interview(request: ChatRequest) -> ChatResponse:
     messages = request.messages
     
     # Extract the conversation history (excluding the first system prompt if we were keeping it)
-    user_turns = [m for m in messages if m.role == "user"]
+    user_turns = []
+    llm_messages = []
+    
+    for m in messages:
+        if m.role == "user":
+            scrubbed_content = scrub_text(m.content)
+            # Replace original content with scrubbed content for this processing run
+            m.content = scrubbed_content
+            user_turns.append(m)
+        llm_messages.append({"role": m.role, "content": m.content})
     
     # 1. Check if we reached the max turns
     turn_count = len(user_turns)
     
-    # Get all symptoms reported by user so far
+    # Get all symptoms reported by user so far (now scrubbed)
     all_user_text = "\n".join([m.content for m in user_turns])
     
     # 2. Retrieve medical context based on the cumulative user text
@@ -67,9 +77,7 @@ If you are providing a final assessment, return:
 }}
 """
 
-    llm_messages = [{"role": "system", "content": system_prompt}]
-    for m in messages:
-        llm_messages.append({"role": m.role, "content": m.content})
+    llm_messages.insert(0, {"role": "system", "content": system_prompt})
         
     try:
         response = llm_client.chat.completions.create(
