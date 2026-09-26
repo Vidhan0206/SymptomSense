@@ -33,10 +33,13 @@ def expand_query(user_text: str) -> str:
     Uses the LLM to rewrite the raw conversational user text into an optimized clinical search query.
     """
     system_prompt = """You are a medical search query generator.
-    Translate the user's conversational symptom descriptions into a concise list of medical keywords and clinical terms.
-    Return ONLY the keywords separated by commas, nothing else.
-    Example Input: "my head hurts really bad and I feel like throwing up"
-    Example Output: "Severe headache, nausea, migraine symptoms"
+    Translate the user's conversational symptom descriptions into a concise list of medical keywords and clinical terms in standard English.
+    If the user speaks in a different language or uses a transliterated language like Hinglish (e.g., Hindi written in English script), you MUST translate their symptoms into standard English medical keywords.
+    Return ONLY the English keywords separated by commas, nothing else.
+    Example Input 1: "my head hurts really bad and I feel like throwing up"
+    Example Output 1: "Severe headache, nausea, migraine symptoms"
+    Example Input 2: "mera pet dard kar raha hai"
+    Example Output 2: "Abdominal pain, stomach ache"
     """
     try:
         response = llm_client.chat.completions.create(

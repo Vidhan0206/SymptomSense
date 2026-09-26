@@ -1,11 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
+import Auth from "../components/Auth";
+import { User } from "@supabase/supabase-js";
 
 type Message = {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp?: string;
+  attachmentName?: string;
+  attachmentText?: string;
 };
 
 type Assessment = {
@@ -26,58 +31,87 @@ type Session = {
 };
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [userName, setUserName] = useState("Guest Patient");
-  const [isEditingName, setIsEditingName] = useState(false);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Analyzing symptoms...");
   const [isListening, setIsListening] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatHistoryRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load from LocalStorage on mount
+  // Sync theme with body class on mount
   useEffect(() => {
-    const savedName = localStorage.getItem("symptomsense_username");
-    if (savedName) {
-      setUserName(savedName);
-    }
-
-    const saved = localStorage.getItem("symptomsense_sessions");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSessions(parsed);
-        if (parsed.length > 0) {
-          setActiveSessionId(parsed[0].id);
-        } else {
-          createNewSession();
-        }
-      } catch (e) {
-        console.error("Failed to parse sessions", e);
-        createNewSession();
-      }
-    } else {
-      createNewSession();
-    }
+    setIsDark(document.body.classList.contains('dark'));
   }, []);
 
-  // Save to LocalStorage when sessions change
-  useEffect(() => {
-    if (sessions.length > 0) {
-      localStorage.setItem("symptomsense_sessions", JSON.stringify(sessions));
-    } else if (sessions.length === 0 && activeSessionId === null) {
-      // If we just deleted everything, don't overwrite with empty yet, let createNewSession handle it
+  const toggleTheme = () => {
+    if (isDark) {
+      document.body.classList.remove('dark');
+    } else {
+      document.body.classList.add('dark');
     }
-  }, [sessions]);
+    setIsDark(!isDark);
+  };
 
-  // Save username to LocalStorage
+  // Check Auth
   useEffect(() => {
-    localStorage.setItem("symptomsense_username", userName);
-  }, [userName]);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load from Supabase on mount/auth
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchSessions = async () => {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error("Failed to fetch sessions from Supabase", error);
+        createNewSession();
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        // Map snake_case to camelCase
+        const mappedSessions: Session[] = data.map(row => ({
+          id: row.id,
+          title: row.title,
+          messages: row.messages,
+          assessment: row.assessment,
+          createdAt: new Date(row.created_at).getTime()
+        }));
+        setSessions(mappedSessions);
+        setActiveSessionId(mappedSessions[0].id);
+      } else {
+        createNewSession();
+      }
+    };
+    
+    fetchSessions();
+  }, [user]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const currentMessages = activeSession?.messages || [];
@@ -96,8 +130,31 @@ export default function Home() {
     scrollToBottom();
   }, [currentMessages, loading]);
 
-  const createNewSession = () => {
-    const newId = Date.now().toString();
+  // Dynamic Loading Text Cycling
+  useEffect(() => {
+    if (!loading) return;
+    
+    const phrases = [
+      "Extracting clinical data...",
+      "Cross-referencing medical literature...",
+      "Analyzing potential conditions...",
+      "Evaluating clinical urgency...",
+      "Synthesizing final assessment..."
+    ];
+    
+    let index = 0;
+    setLoadingText(phrases[0]); // Reset on start
+    
+    const interval = setInterval(() => {
+      index = (index + 1) % phrases.length;
+      setLoadingText(phrases[index]);
+    }, 2500);
+    
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const createNewSession = async () => {
+    const newId = crypto.randomUUID();
     const newSession: Session = {
       id: newId,
       title: "New Assessment",
@@ -105,10 +162,30 @@ export default function Home() {
       assessment: null,
       createdAt: Date.now()
     };
+    
+    // Optimistic UI update
     setSessions(prev => [newSession, ...prev]);
     setActiveSessionId(newId);
     setInput("");
     setIsMobileMenuOpen(false); // Close menu on new chat
+
+    if (user) {
+      // Background insert to Supabase
+      const { error } = await supabase.from('chat_sessions').insert([{
+        id: newSession.id,
+        user_id: user.id,
+        title: newSession.title,
+        messages: newSession.messages,
+        assessment: newSession.assessment
+      }]);
+      if (error) {
+        console.error("Error creating session in Supabase:");
+        console.error("Message:", error.message);
+        console.error("Details:", error.details);
+        console.error("Hint:", error.hint);
+        console.error("Code:", error.code);
+      }
+    }
   };
 
   const handleReset = () => {
@@ -121,16 +198,20 @@ export default function Home() {
     createNewSession();
   };
 
-  const handleDeleteSession = (e: React.MouseEvent, id: string) => {
+  const handleDeleteSession = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // prevent triggering active session switch
     const updated = sessions.filter(s => s.id !== id);
     setSessions(updated);
 
     if (updated.length === 0) {
-      localStorage.removeItem("symptomsense_sessions");
       createNewSession();
     } else if (activeSessionId === id) {
       setActiveSessionId(updated[0].id);
+    }
+    
+    if (user) {
+      const { error } = await supabase.from('chat_sessions').delete().eq('id', id);
+      if (error) console.error("Error deleting session from Supabase:", error);
     }
   };
 
@@ -138,10 +219,26 @@ export default function Home() {
     setInput(text);
   };
 
-  const updateActiveSession = (updates: Partial<Session>) => {
-    setSessions(prev => prev.map(s =>
-      s.id === activeSessionId ? { ...s, ...updates } : s
-    ));
+  const updateActiveSession = async (updates: Partial<Session>) => {
+    let updatedSession: Session | null = null;
+    
+    setSessions(prev => prev.map(s => {
+      if (s.id === activeSessionId) {
+        updatedSession = { ...s, ...updates };
+        return updatedSession;
+      }
+      return s;
+    }));
+
+    if (user && updatedSession && activeSessionId) {
+      const { error } = await supabase.from('chat_sessions').update({
+        title: (updatedSession as Session).title,
+        messages: (updatedSession as Session).messages,
+        assessment: (updatedSession as Session).assessment
+      }).eq('id', activeSessionId);
+      
+      if (error) console.error("Error updating session in Supabase:", error);
+    }
   };
 
   const startListening = () => {
@@ -188,28 +285,75 @@ export default function Home() {
     if (!input.trim() || loading || currentAssessment) return;
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const userMessage: Message = { role: "user", content: input, timestamp };
-
-    const newMessages = [...currentMessages, userMessage];
-
     // Auto-generate title if this is the first message
     let newTitle = activeSession?.title;
     if (currentMessages.length === 0) {
-      newTitle = input.length > 25 ? input.substring(0, 25) + "..." : input;
+      newTitle = input.length > 25 ? input.substring(0, 25) + "..." : input || (selectedFile ? `File: ${selectedFile.name}` : "New Assessment");
     }
 
-    updateActiveSession({ messages: newMessages, title: newTitle });
-    setInput("");
+    // Keep track of the attached file, then clear the UI state
+    const attachedFile = selectedFile;
+    setSelectedFile(null);
     setLoading(true);
+
+    let newMessages = [...currentMessages];
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      
+      let finalMessageContent = input;
+      let attachmentName = "";
+      let attachmentText = "";
+
+      // 1. If there is a file, upload it first to extract text
+      if (attachedFile) {
+        const formData = new FormData();
+        formData.append("file", attachedFile);
+
+        const uploadRes = await fetch(`${apiUrl}/upload`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          if (uploadData.text) {
+            attachmentName = attachedFile.name;
+            attachmentText = uploadData.text;
+          }
+        }
+      }
+
+      // Create the message for the UI (hiding the giant text wall)
+      const userMessage: Message = { 
+        role: "user", 
+        content: input, 
+        timestamp,
+        attachmentName: attachmentName || undefined,
+        attachmentText: attachmentText || undefined
+      };
+      
+      newMessages = [...currentMessages, userMessage];
+
+      // Update UI with the clean user message immediately
+      updateActiveSession({ messages: newMessages, title: newTitle });
+      setInput(""); // Clear the input box immediately
+
+      // Format messages for the backend AI (injecting the hidden text)
+      const apiMessages = newMessages.map(msg => ({
+        role: msg.role,
+        content: msg.attachmentText 
+          ? `${msg.content}\n\n[Attached File: ${msg.attachmentName}]\n${msg.attachmentText}`
+          : msg.content
+      }));
+
+      // 2. Send the conversation to the AI
       const response = await fetch(`${apiUrl}/interview/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: apiMessages }),
       });
 
       const data = await response.json();
@@ -231,6 +375,9 @@ export default function Home() {
             { role: "assistant", content: data.question, timestamp: responseTimestamp }
           ]
         });
+      } else {
+        // Handle unexpected 500 errors from backend
+        throw new Error(data.detail || "Invalid response from server");
       }
     } catch (error) {
       console.error("Failed to fetch:", error);
@@ -245,8 +392,16 @@ export default function Home() {
     }
   };
 
+  if (!user) {
+    return <Auth />;
+  }
+
   return (
     <div className="app-layout">
+      {/* Background Elements to match Auth screen */}
+      <div className="ambient-glow-chat"></div>
+      <div className="ekg-background" style={{ opacity: 0.05 }}></div>
+
       {/* Mobile Header */}
       <div className="mobile-header">
         <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
@@ -304,25 +459,53 @@ export default function Home() {
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-profile">
-            <div className="avatar user-avatar mini">👤</div>
-            {isEditingName ? (
-              <input
-                type="text"
-                className="name-edit-input"
-                value={userName}
-                onChange={e => setUserName(e.target.value)}
-                onBlur={() => setIsEditingName(false)}
-                onKeyDown={e => e.key === 'Enter' && setIsEditingName(false)}
-                autoFocus
-              />
-            ) : (
-              <>
-                <span>{userName}</span>
-                <button className="edit-name-btn" onClick={() => setIsEditingName(true)} title="Edit Name">✎</button>
-              </>
-            )}
+          <div className="user-profile" style={{ flexGrow: 1 }}>
+            <div className="avatar user-avatar mini">
+              {user.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="User Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+              ) : (
+                '👤'
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
+              </span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Signed in</span>
+            </div>
           </div>
+          
+          <button 
+            onClick={toggleTheme} 
+            title="Toggle Theme"
+            style={{
+              background: 'transparent', border: 'none',
+              color: 'var(--text-muted)', width: '32px', height: '32px',
+              cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem',
+              transition: 'color 0.2s'
+            }}
+          >
+            {isDark ? '☾' : '☀'}
+          </button>
+
+          <button 
+            onClick={handleSignOut} 
+            title="Sign Out"
+            style={{
+              background: 'transparent', border: 'none',
+              color: '#ef4444', width: '32px', height: '32px',
+              cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem',
+              transition: 'color 0.2s'
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
         </div>
       </aside>
 
@@ -350,6 +533,17 @@ export default function Home() {
                 </div>
                 <div className="message-bubble">
                   {msg.content}
+                  {msg.attachmentName && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                      background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                      padding: '0.5rem 0.75rem', borderRadius: '0.5rem', marginTop: '0.75rem',
+                      width: 'max-content', fontSize: '0.85rem'
+                    }}>
+                      <span>📄</span>
+                      <span style={{ fontWeight: 600 }}>{msg.attachmentName}</span>
+                    </div>
+                  )}
                   {msg.timestamp && <span className="timestamp">{msg.timestamp}</span>}
                 </div>
               </div>
@@ -364,66 +558,64 @@ export default function Home() {
                   <div className="loading-dots">
                     <div></div><div></div><div></div>
                   </div>
-                  <span className="loading-text">Analyzing symptoms & medical literature...</span>
+                  <span className="loading-text">{loadingText}</span>
                 </div>
               </div>
             </div>
           )}
 
           {currentAssessment && (
-            <div className="assessment-card">
-              <div className="assessment-header">
-                <h2 className="assessment-title">Condition: {currentAssessment.condition}</h2>
-                <span className={`badge urgency-${currentAssessment.urgency}`}>
-                  Urgency: {currentAssessment.urgency}
+            <div className="assessment-card premium-assessment">
+              <div className="premium-assessment-header">
+                <div className="pulse-icon">⚕️</div>
+                <div className="header-text">
+                  <span className="label">CLINICAL ASSESSMENT</span>
+                  <h2 className="assessment-title">{currentAssessment.condition}</h2>
+                </div>
+                <span className={`premium-badge urgency-${currentAssessment.urgency}`}>
+                  {currentAssessment.urgency.toUpperCase()} URGENCY
                 </span>
               </div>
 
-              <div className="assessment-section">
-                <h3>Reasoning (Confidence: {currentAssessment.confidence})</h3>
-                <p>{currentAssessment.reasoning}</p>
-              </div>
-
-              <div className="assessment-section">
-                <h3>Recommended Next Steps</h3>
-                <ul>
-                  {currentAssessment.next_steps.map((step, idx) => (
-                    <li key={idx}>{step}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {currentAssessment.sources && currentAssessment.sources.length > 0 && (
-                <div className="assessment-section" style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem', marginTop: '1rem' }}>
-                  <h3>Verified Medical Sources</h3>
-                  <ul>
-                    {currentAssessment.sources.map((src, idx) => (
-                      <li key={idx}>
-                        <a href={src.url} target="_blank" rel="noopener noreferrer" className="source-link">
-                          MedlinePlus: {src.condition}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="premium-assessment-body">
+                <div className="assessment-section">
+                  <div className="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    Clinical Reasoning <span className={`confidence-tag ${currentAssessment.confidence || 'medium'}`}>{currentAssessment.confidence || 'medium'} confidence</span>
+                  </div>
+                  <p>{currentAssessment.reasoning || "No detailed reasoning provided by the AI."}</p>
                 </div>
-              )}
 
-              <div className="assessment-actions" style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
-                {currentAssessment.urgency === "emergency" ? (
-                  <a href="tel:112" className="reset-button" style={{ flex: 2, margin: 0, background: 'rgba(220, 38, 38, 0.1)', borderColor: '#dc2626', color: '#b91c1c', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
-                    🚨 CALL AMBULANCE (112)
-                  </a>
-                ) : (
-                  <a href={`https://www.google.com/maps/search/doctors+for+${encodeURIComponent(currentAssessment.condition)}+near+me`} target="_blank" rel="noopener noreferrer" className="reset-button" style={{ flex: 1.5, margin: 0, background: 'rgba(14, 165, 233, 0.1)', borderColor: '#0ea5e9', color: '#0284c7', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600' }}>
-                    📍 Find Nearby Clinics
-                  </a>
-                )}
-                <button className="reset-button" onClick={handlePrint} style={{ flex: 1, margin: 0, background: 'rgba(0, 0, 0, 0.02)' }}>
-                  🖨️ Export Report
-                </button>
-                <button className="reset-button" onClick={handleReset} style={{ flex: 1, margin: 0 }}>
-                  ⟲ Start New
-                </button>
+                <div className="assessment-section">
+                  <div className="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"></path></svg>
+                    Recommended Next Steps
+                  </div>
+                  <ul className="premium-steps">
+                    {Array.isArray(currentAssessment.next_steps) ? (
+                      currentAssessment.next_steps.map((step, idx) => (
+                        <li key={idx}><span>{idx + 1}</span> {step}</li>
+                      ))
+                    ) : (
+                      <li><span>1</span> {String(currentAssessment.next_steps || "Consult a healthcare provider.")}</li>
+                    )}
+                  </ul>
+                  
+                  <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                    <button 
+                      className="primary-action" 
+                      onClick={() => window.open(`https://www.google.com/maps/search/doctors+near+me+for+${encodeURIComponent(currentAssessment.condition || 'general practice')}`, '_blank')}
+                      style={{ 
+                        background: 'var(--btn-primary)', color: 'white', border: 'none', 
+                        padding: '0.75rem 1.5rem', borderRadius: '0.5rem', fontWeight: 600, 
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)', transition: 'transform 0.2s'
+                      }}
+                    >
+                      <span className="icon">🏥</span> Find Nearby Doctors
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -433,6 +625,26 @@ export default function Home() {
 
         <div className="input-wrapper">
           <div className="input-area">
+            {selectedFile && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                background: 'var(--card-bg)', border: '1px solid var(--text-highlight)',
+                padding: '0.5rem 1rem', borderRadius: '0.5rem', marginBottom: '0.5rem',
+                width: 'max-content', fontSize: '0.85rem', color: 'var(--text-main)',
+                boxShadow: '0 2px 10px rgba(16,185,129,0.1)'
+              }}>
+                <span style={{ color: 'var(--text-highlight)' }}>📄</span>
+                <span style={{ fontWeight: 600, maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {selectedFile.name}
+                </span>
+                <button 
+                  onClick={() => setSelectedFile(null)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginLeft: '0.5rem' }}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="input-form">
               <input
                 type="text"
@@ -443,6 +655,30 @@ export default function Home() {
                 disabled={loading || currentAssessment !== null}
               />
 
+              <input 
+                type="file" 
+                accept=".pdf" 
+                style={{ display: 'none' }} 
+                ref={fileInputRef}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSelectedFile(e.target.files[0]);
+                  }
+                }}
+              />
+
+              <button
+                type="button"
+                className="mic-button"
+                title="Upload Lab Report (PDF)"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading || currentAssessment !== null}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+              </button>
+
               <button
                 type="button"
                 className={`mic-button ${isListening ? 'listening' : ''}`}
@@ -450,7 +686,12 @@ export default function Home() {
                 disabled={loading || currentAssessment !== null}
                 title="Speak your symptoms"
               >
-                🎤
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
               </button>
 
               <button
