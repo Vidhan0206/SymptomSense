@@ -82,18 +82,19 @@ export default function Auth() {
       <style>{`
         .landing-container {
           display: flex;
-          min-height: 100vh;
+          height: 100vh;
           width: 100vw;
           background: var(--bg-main);
           color: var(--text-main);
           font-family: 'Plus Jakarta Sans', sans-serif;
-          overflow: hidden;
+          overflow-y: auto;
+          overflow-x: hidden;
           position: relative;
         }
 
         /* Ambient Emerald Glow */
         .ambient-glow {
-          position: absolute;
+          position: fixed;
           left: 10%;
           top: 20%;
           width: 600px;
@@ -105,7 +106,7 @@ export default function Auth() {
 
         /* Animated EKG Background */
         .ekg-background {
-          position: absolute;
+          position: fixed;
           top: 0;
           left: 0;
           width: 200%;
