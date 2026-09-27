@@ -86,9 +86,12 @@ export default function Home() {
         
       if (error) {
         console.error("Failed to fetch sessions from Supabase", error);
+        alert("Fetch Error: " + error.message);
         createNewSession();
         return;
       }
+      
+      alert("Fetched " + (data ? data.length : 0) + " sessions from Supabase.");
       
       if (data && data.length > 0) {
         // Map snake_case to camelCase
