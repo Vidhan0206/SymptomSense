@@ -145,23 +145,33 @@ export default function Auth() {
           z-index: 1;
         }
 
+        .hero-title-container {
+          min-height: 120px; /* Prevent layout jump while typing */
+          margin-bottom: 1.5rem;
+        }
+
         .hero-title {
           font-size: clamp(2.5rem, 4.5vw, 4rem);
           font-weight: 800;
           line-height: 1.2;
           letter-spacing: -0.02em;
-          margin-bottom: 1.5rem;
           color: var(--text-main);
-          min-height: 120px; /* Prevent layout jump while typing */
-          border-right: 4px solid var(--text-highlight);
-          padding-right: 8px;
-          animation: blink-caret 0.75s step-end infinite;
+          display: inline;
+        }
+
+        .hero-cursor {
           display: inline-block;
+          width: 4px;
+          height: 0.9em;
+          background-color: var(--text-highlight);
+          vertical-align: text-bottom;
+          margin-left: 6px;
+          animation: blink-caret 0.75s step-end infinite;
         }
 
         @keyframes blink-caret {
-          from, to { border-color: transparent }
-          50% { border-color: var(--text-highlight); }
+          from, to { opacity: 0; }
+          50% { opacity: 1; }
         }
 
         .hero-subtitle {
@@ -322,10 +332,11 @@ export default function Auth() {
             SymptomSense
           </span>
         </div>
-        <div>
+        <div className="hero-title-container">
           <h1 className="hero-title">
             {displayedText}
           </h1>
+          <span className="hero-cursor"></span>
         </div>
         <p className="hero-subtitle">
           Get instant, personalized medical insights. Upload your lab reports, chat with our AI diagnostician, and securely track your health journey in one place.
