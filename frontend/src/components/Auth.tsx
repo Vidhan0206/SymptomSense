@@ -145,26 +145,29 @@ export default function Auth() {
           z-index: 1;
         }
 
-        .hero-title-container {
-          min-height: 120px;
-          margin-bottom: 1.25rem;
+        .hero-logo {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 2rem;
         }
 
         .hero-title {
-          font-size: clamp(2.5rem, 4.5vw, 4rem);
+          font-size: clamp(2.5rem, 4vw, 3.5rem); 
           font-weight: 800;
           line-height: 1.2;
           letter-spacing: -0.02em;
           color: var(--text-main);
-          display: inline;
+          margin-bottom: 1.5rem;
+          display: block;
         }
 
         .hero-cursor {
           display: inline-block;
-          width: 5px;
-          height: 0.95em;
+          width: 3px;
+          height: 0.9em;
           background-color: var(--text-highlight);
-          vertical-align: -0.05em;
+          vertical-align: baseline;
           margin-left: 4px;
           animation: blink-caret 0.75s step-end infinite;
         }
@@ -179,7 +182,7 @@ export default function Auth() {
           color: var(--text-muted);
           max-width: 500px;
           line-height: 1.6;
-          margin-bottom: 3rem;
+          margin-bottom: 2.5rem;
           font-weight: 500;
         }
 
@@ -326,18 +329,16 @@ export default function Auth() {
 
       {/* Left Column: Hero Section */}
       <div className="landing-left">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+        <div className="hero-logo">
           <span style={{ fontSize: '2.5rem' }}>⚕️</span>
           <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.5px' }}>
             SymptomSense
           </span>
         </div>
-        <div className="hero-title-container">
-          <h1 className="hero-title">
-            {displayedText}
-            <span className="hero-cursor"></span>
-          </h1>
-        </div>
+        <h1 className="hero-title">
+          {displayedText}
+          <span className="hero-cursor"></span>
+        </h1>
         <p className="hero-subtitle">
           Get instant, personalized medical insights. Upload your lab reports, chat with our AI diagnostician, and securely track your health journey in one place.
         </p>
