@@ -179,11 +179,8 @@ export default function Home() {
         assessment: newSession.assessment
       }]);
       if (error) {
-        console.error("Error creating session in Supabase:");
-        console.error("Message:", error.message);
-        console.error("Details:", error.details);
-        console.error("Hint:", error.hint);
-        console.error("Code:", error.code);
+        console.error("Error creating session in Supabase:", error);
+        alert("Database Error (Insert): " + error.message);
       }
     }
   };
@@ -237,7 +234,10 @@ export default function Home() {
         assessment: (updatedSession as Session).assessment
       }).eq('id', activeSessionId);
       
-      if (error) console.error("Error updating session in Supabase:", error);
+      if (error) {
+        console.error("Error updating session in Supabase:", error);
+        alert("Database Error (Update): " + error.message);
+      }
     }
   };
 
