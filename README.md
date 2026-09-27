@@ -4,7 +4,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database_&_Auth-3ECF8E?logo=supabase)](https://supabase.com/)
-[![Groq](https://img.shields.io/badge/Groq-qwen--27b-f55036)](https://groq.com/)
+[![Groq](https://img.shields.io/badge/Groq-qwen--2.5--32b-f55036)](https://groq.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts intelligent clinical interviews and generates grounded health assessments using Retrieval-Augmented Generation (RAG).
