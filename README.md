@@ -9,7 +9,10 @@
 
 SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts intelligent clinical interviews and generates grounded health assessments using Retrieval-Augmented Generation (RAG).
 
-<img width="1917" height="876" alt="image" src="https://github.com/user-attachments/assets/9da8dc6f-3c6c-4f2b-9164-f777306ef501" />
+<img width="1917" height="877" alt="image" src="https://github.com/user-attachments/assets/ffdbc5c5-8560-4087-8d07-e082ae85f0c8" />
+<img width="1917" height="875" alt="image" src="https://github.com/user-attachments/assets/31b6dd18-be7d-4a30-8113-2e37b2c6d2ac" />
+
+
 
 
 ---
