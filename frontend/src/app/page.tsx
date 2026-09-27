@@ -107,7 +107,7 @@ export default function Home() {
     };
     
     fetchSessions();
-  }, [user]);
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
