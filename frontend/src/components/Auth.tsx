@@ -146,8 +146,8 @@ export default function Auth() {
         }
 
         .hero-title-container {
-          min-height: 120px; /* Prevent layout jump while typing */
-          margin-bottom: 1.5rem;
+          min-height: 120px;
+          margin-bottom: 2.5rem;
         }
 
         .hero-title {
@@ -161,11 +161,11 @@ export default function Auth() {
 
         .hero-cursor {
           display: inline-block;
-          width: 4px;
-          height: 0.9em;
+          width: 5px;
+          height: 0.95em;
           background-color: var(--text-highlight);
-          vertical-align: text-bottom;
-          margin-left: 6px;
+          vertical-align: -0.05em;
+          margin-left: 4px;
           animation: blink-caret 0.75s step-end infinite;
         }
 
@@ -335,8 +335,8 @@ export default function Auth() {
         <div className="hero-title-container">
           <h1 className="hero-title">
             {displayedText}
+            <span className="hero-cursor"></span>
           </h1>
-          <span className="hero-cursor"></span>
         </div>
         <p className="hero-subtitle">
           Get instant, personalized medical insights. Upload your lab reports, chat with our AI diagnostician, and securely track your health journey in one place.
