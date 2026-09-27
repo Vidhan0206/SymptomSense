@@ -147,7 +147,7 @@ export default function Auth() {
 
         .hero-title-container {
           min-height: 120px;
-          margin-bottom: 2.5rem;
+          margin-bottom: 1.25rem;
         }
 
         .hero-title {
@@ -179,7 +179,7 @@ export default function Auth() {
           color: var(--text-muted);
           max-width: 500px;
           line-height: 1.6;
-          margin-bottom: 4rem;
+          margin-bottom: 3rem;
           font-weight: 500;
         }
 
