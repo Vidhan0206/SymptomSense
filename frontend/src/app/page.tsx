@@ -91,7 +91,7 @@ export default function Home() {
         return;
       }
       
-      alert("Fetched " + (data ? data.length : 0) + " sessions from Supabase.");
+      // alert("Fetched " + (data ? data.length : 0) + " sessions from Supabase.");
       
       if (data && data.length > 0) {
         // Map snake_case to camelCase
@@ -220,21 +220,22 @@ export default function Home() {
   };
 
   const updateActiveSession = async (updates: Partial<Session>) => {
-    let updatedSession: Session | null = null;
-    
-    setSessions(prev => prev.map(s => {
-      if (s.id === activeSessionId) {
-        updatedSession = { ...s, ...updates };
-        return updatedSession;
-      }
-      return s;
-    }));
+    // 1. Find the current session synchronously
+    const currentSession = sessions.find(s => s.id === activeSessionId);
+    if (!currentSession) return;
 
-    if (user && updatedSession && activeSessionId) {
+    // 2. Compute the updated session
+    const updatedSession = { ...currentSession, ...updates };
+
+    // 3. Update React state
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? updatedSession : s));
+
+    // 4. Save to Database
+    if (user && activeSessionId) {
       const { error } = await supabase.from('chat_sessions').update({
-        title: (updatedSession as Session).title,
-        messages: (updatedSession as Session).messages,
-        assessment: (updatedSession as Session).assessment
+        title: updatedSession.title,
+        messages: updatedSession.messages,
+        assessment: updatedSession.assessment
       }).eq('id', activeSessionId);
       
       if (error) {
