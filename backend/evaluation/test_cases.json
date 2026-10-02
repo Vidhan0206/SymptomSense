@@ -1,0 +1,28 @@
+[
+    {
+        "id": "tc_01",
+        "description": "Typical Flu Symptoms with PII",
+        "input_messages": [
+            {
+                "role": "user",
+                "content": "Hi, my name is John Doe. My phone number is 555-0198. I have been having a sudden high fever, chills, and muscle aches for the last 2 days. I also have a dry cough and feel extremely fatigued."
+            }
+        ],
+        "expected_condition": "Flu",
+        "expected_urgency": "medium",
+        "pii_present": true
+    },
+    {
+        "id": "tc_02",
+        "description": "Common Cold Symptoms without PII",
+        "input_messages": [
+            {
+                "role": "user",
+                "content": "I have a runny nose, a mild sore throat, and I've been sneezing a lot. No fever, just a little bit of a headache and congestion. It started slowly yesterday."
+            }
+        ],
+        "expected_condition": "Common Cold",
+        "expected_urgency": "low",
+        "pii_present": false
+    }
+]

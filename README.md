@@ -36,6 +36,7 @@ SymptomSense is a cutting-edge, market-ready AI medical assistant that conducts 
 - **Multi-Source Data Pipelines**: Ingests and harmonizes clinical data from across the globe, including the **US National Institutes of Health (MedlinePlus)** and the **UK National Health Service (NHS)**.
 - **Voice & File Input**: Seamlessly integrates with native browser Web Speech APIs for dictation, and allows uploading PDF lab reports for the AI to analyze alongside your conversation.
 - **Structured JSON Assessments**: The LLM output is strictly constrained to a JSON schema, producing a final Assessment Card containing the suspected condition, confidence level, urgency, reasoning, and verified medical sources.
+- **Quantitative Evaluation Suite**: Includes a custom Python benchmarking suite to programmatically evaluate the RAG pipeline for retrieval precision, diagnostic accuracy, and PII redaction success rate against ground-truth clinical vignettes.
 - **Premium User Interface**: Built with **Next.js** and React. Features a highly responsive aesthetic with glassmorphism, dynamic typing effects, subtle micro-animations, and full Dark/Light mode support.
 
 ## 📊 Multi-Source Data Architecture
@@ -57,12 +58,30 @@ The project is split into a Python backend and a Next.js frontend, backed by a S
 - `app/security/`: Houses the **Microsoft Presidio** NLP anonymizer engine to sanitize PII from user inputs.
 - `app/llm/`: Manages the Groq API connection and houses the core State Machine, parsing history, pulling context, and formatting output.
 - `app/main.py`: Exposes the `/interview/message` POST endpoint.
+- `evaluation/`: Contains the automated benchmarking script (`evaluate.py`) and synthetic clinical test cases used to evaluate the system's accuracy and PII redaction capabilities.
 
 ### Frontend (Next.js 14)
 - `src/app/page.tsx`: The primary chat interface. Handles state management, Supabase data fetching, and dynamic rendering.
 - `src/components/Auth.tsx`: The authentication landing page handling Supabase Email/Password and Google OAuth login.
 - `src/lib/supabaseClient.ts`: Initializes the Supabase client.
 - `src/app/globals.css`: A pure Vanilla CSS stylesheet tailored for a premium, lightweight, responsive experience.
+
+---
+
+## 🧪 Quantitative Evaluation
+
+To guarantee the reliability of the AI, SymptomSense includes a custom evaluation framework. The evaluation script simulates multi-turn patient conversations to benchmark the RAG pipeline against ground-truth clinical data.
+
+**To run the evaluation suite locally:**
+```bash
+cd backend
+python evaluation/evaluate.py
+```
+
+The script currently tests:
+1. **PII Redaction Success**: Validates that Microsoft Presidio catches and scrubs edge-case identifiers (e.g., custom phone formats, names) before they hit the LLM.
+2. **State Machine Logic**: Ensures the AI asks the required follow-up questions (`MIN_TURNS`) before attempting an assessment.
+3. **Diagnostic Accuracy**: Benchmarks the LLM's final predicted diagnosis against the expected medical condition.
 
 ---
 
